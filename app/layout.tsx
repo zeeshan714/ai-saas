@@ -1,19 +1,28 @@
+import type { Metadata } from "next";
+import Script from "next/script";
 import "./globals.css";
-import Navbar from "./about/components/Navbar";
-import Footer from "./about/components/Footer";
+
+export const metadata: Metadata = {
+  title: "Wordle Pro Game",
+  description: "Play Wordle Pro and test your tech vocabulary skills!",
+};
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
     <html lang="en">
-      <body className="min-h-screen flex flex-col justify-between">
-        <Navbar />
-        <main className="flex-grow">{children}</main>
-        <Footer />
-      </body>
+      <head>
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4451053574258511"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
+      </head>
+      <body>{children}</body>
     </html>
   );
 }
