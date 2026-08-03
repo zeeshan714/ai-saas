@@ -22,9 +22,9 @@ export default function Home() {
   const [gameOver, setGameOver] = useState(false);
   const [message, setMessage] = useState("");
 
-  // Score & Timer States
+  // Score & Timer States (ٹائم 120 سیکنڈز سیٹ کر دیا گیا ہے)
   const [score, setScore] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(60);
+  const [timeLeft, setTimeLeft] = useState(120);
   const [isTimerActive, setIsTimerActive] = useState(false);
 
   const resetGame = useCallback(() => {
@@ -35,7 +35,7 @@ export default function Home() {
     setCurrentRow(0);
     setGameOver(false);
     setMessage("");
-    setTimeLeft(60);
+    setTimeLeft(120); // کھیل دوبارہ شروع ہونے پر بھی 120 سیکنڈز ملیں گے
     setIsTimerActive(true);
   }, []);
 
@@ -152,7 +152,7 @@ export default function Home() {
             <span>🏆 Score:</span>
             <span className="text-white text-base font-extrabold">{score}</span>
           </div>
-          <div className={`flex items-center gap-1.5 ${timeLeft <= 10 ? "text-rose-500 animate-pulse" : "text-emerald-400"}`}>
+          <div className={`flex items-center gap-1.5 ${timeLeft <= 15 ? "text-rose-500 animate-pulse" : "text-emerald-400"}`}>
             <span>⏱️ Time:</span>
             <span className="text-white text-base font-extrabold">{timeLeft}s</span>
           </div>
