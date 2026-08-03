@@ -2,24 +2,26 @@
 
 import { useState, useEffect, useCallback } from "react";
 
-const WORDS = [
-  "NEXTJS",
-  "VERCEL",
-  "CODING",
-  "SCRIPT",
-  "DESIGN",
-  "GITHUB",
-  "PYTHON",
-  "DOCKER"
+// الفاظ اور ان کے ہنٹس (Hints)
+const WORDS_WITH_HINTS = [
+  { word: "NEXTJS", hint: "Popular React framework for web development" },
+  { word: "VERCEL", hint: "Platform to deploy Next.js apps easily" },
+  { word: "CODING", hint: "Writing instructions for computers" },
+  { word: "SCRIPT", hint: "A set of code/instructions (e.g. JavaScript)" },
+  { word: "DESIGN", hint: "Creating UI/UX and visual structure" },
+  { word: "GITHUB", hint: "Platform for code hosting & version control" },
+  { word: "PYTHON", hint: "Popular language for AI and Data Science" },
+  { word: "DOCKER", hint: "Container technology to package applications" }
 ];
 
 export default function Home() {
-  const [solution, setSolution] = useState("");
+  const [solutionObj, setSolutionObj] = useState<{ word: string; hint: string }>({ word: "", hint: "" });
   const [guesses, setGuesses] = useState<string[]>(Array(6).fill(""));
   const [currentGuess, setCurrentGuess] = useState("");
   const [currentRow, setCurrentRow] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [message, setMessage] = useState("");
+  const [showHint, setShowHint] = useState(false);
 
   // Score & Timer States
   const [score, setScore] = useState(0);
@@ -27,15 +29,16 @@ export default function Home() {
   const [isTimerActive, setIsTimerActive] = useState(false);
   const [isRoundOver, setIsRoundOver] = useState(false);
 
-  // اگلا راؤنڈ شروع کرنے کا فنکشن (سکور برقرار رہے گا)
+  // اگلا راؤنڈ شروع کرنے کا فنکشن
   const startNextRound = useCallback(() => {
-    const randomWord = WORDS[Math.floor(Math.random() * WORDS.length)];
-    setSolution(randomWord);
+    const randomItem = WORDS_WITH_HINTS[Math.floor(Math.random() * WORDS_WITH_HINTS.length)];
+    setSolutionObj(randomItem);
     setGuesses(Array(6).fill(""));
     setCurrentGuess("");
     setCurrentRow(0);
     setIsRoundOver(false);
     setMessage("");
+    setShowHint(false); // نئے راؤنڈ پر ہنٹ خود بخود چھپ جائے گا
   }, []);
 
   // گیم نئے سرے سے ری سیٹ کرنے کا فنکشن
@@ -53,9 +56,9 @@ export default function Home() {
   }, [resetFullGame]);
 
   const handleKeyPress = useCallback((letter: string) => {
-    if (gameOver || isRoundOver || !solution || currentGuess.length >= solution.length) return;
+    if (gameOver || isRoundOver || !solutionObj.word || currentGuess.length >= solutionObj.word.length) return;
     setCurrentGuess((prev) => prev + letter);
-  }, [gameOver, isRoundOver, solution, currentGuess]);
+  }, [gameOver, isRoundOver, solutionObj, currentGuess]);
 
   const handleDelete = useCallback(() => {
     if (gameOver || isRoundOver) return;
@@ -63,9 +66,9 @@ export default function Home() {
   }, [gameOver, isRoundOver]);
 
   const handleSubmit = useCallback(() => {
-    if (gameOver || isRoundOver || !solution) return;
-    if (currentGuess.length !== solution.length) {
-      setMessage(`Word must be ${solution.length} letters!`);
+    if (gameOver || isRoundOver || !solutionObj.word) return;
+    if (currentGuess.length !== solutionObj.word.length) {
+      setMessage(`Word must be ${solutionObj.word.length} letters!`);
       return;
     }
 
@@ -74,19 +77,18 @@ export default function Home() {
     setGuesses(newGuesses);
 
     // Winner Logic (ایک لفظ سولو ہونے پر)
-    if (currentGuess === solution) {
-      const points = (6 - currentRow) * 10 + 20; // 20 ایڈیٹر بونس
+    if (currentGuess === solutionObj.word) {
+      const points = (6 - currentRow) * 10 + 20;
       setScore((prev) => prev + points);
       setMessage(`🎉 Correct! +${points} Points! Next word coming...`);
       setIsRoundOver(true);
 
-      // 1.5 سیکنڈ میں خود بخود اگلا لفظ آ جائے گا
       setTimeout(() => {
         startNextRound();
       }, 1500);
 
     } else if (currentRow === 5) {
-      setMessage(`Word missed! The word was: ${solution}`);
+      setMessage(`Word missed! The word was: ${solutionObj.word}`);
       setIsRoundOver(true);
       setTimeout(() => {
         startNextRound();
@@ -96,7 +98,7 @@ export default function Home() {
       setCurrentGuess("");
       setMessage("");
     }
-  }, [gameOver, isRoundOver, solution, currentGuess, guesses, currentRow, startNextRound]);
+  }, [gameOver, isRoundOver, solutionObj, currentGuess, guesses, currentRow, startNextRound]);
 
   // Physical Keyboard Support
   useEffect(() => {
@@ -116,7 +118,7 @@ export default function Home() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleSubmit, handleDelete, handleKeyPress, gameOver, isRoundOver]);
 
-  // Timer Logic (صرف ٹائم ختم ہونے پر گیم اوور ہوگی)
+  // Timer Logic
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (isTimerActive && timeLeft > 0 && !gameOver) {
@@ -138,16 +140,16 @@ export default function Home() {
     }
 
     const letter = guess[colIndex];
-    if (solution[colIndex] === letter) {
+    if (solutionObj.word[colIndex] === letter) {
       return "bg-emerald-600 border-emerald-500 text-white font-bold shadow-lg shadow-emerald-900/50";
     }
-    if (solution.includes(letter)) {
+    if (solutionObj.word.includes(letter)) {
       return "bg-amber-600 border-amber-500 text-white font-bold shadow-lg shadow-amber-900/50";
     }
     return "bg-slate-800 border-slate-700 text-slate-400";
   };
 
-  const wordLength = solution.length || 6;
+  const wordLength = solutionObj.word.length || 6;
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 text-white flex flex-col items-center justify-center p-4">
@@ -157,20 +159,36 @@ export default function Home() {
         <h1 className="text-3xl font-black text-center bg-gradient-to-r from-blue-400 via-indigo-300 to-emerald-400 bg-clip-text text-transparent mb-1">
           Wordle Pro 🧩
         </h1>
-        <p className="text-slate-400 text-center text-xs mb-4">
+        <p className="text-slate-400 text-center text-xs mb-3">
           Solve as many words as you can in 2 minutes!
         </p>
 
         {/* Score & Timer Dashboard */}
-        <div className="flex justify-between items-center bg-slate-950/70 border border-slate-800/80 rounded-xl px-4 py-2.5 mb-5 text-sm font-bold">
+        <div className="flex justify-between items-center bg-slate-950/70 border border-slate-800/80 rounded-xl px-4 py-2.5 mb-3 text-sm font-bold">
           <div className="flex items-center gap-1.5 text-amber-400">
-            <span>🏆 Total Score:</span>
+            <span>🏆 Score:</span>
             <span className="text-white text-base font-extrabold">{score}</span>
           </div>
           <div className={`flex items-center gap-1.5 ${timeLeft <= 15 ? "text-rose-500 animate-pulse" : "text-emerald-400"}`}>
-            <span>⏱️ Time Left:</span>
+            <span>⏱️ Time:</span>
             <span className="text-white text-base font-extrabold">{timeLeft}s</span>
           </div>
+        </div>
+
+        {/* Hint Section */}
+        <div className="mb-4 text-center">
+          {!showHint ? (
+            <button
+              onClick={() => setShowHint(true)}
+              className="text-xs bg-indigo-950 hover:bg-indigo-900 border border-indigo-700/60 text-indigo-300 px-3 py-1.5 rounded-full font-semibold transition active:scale-95 shadow-sm"
+            >
+              💡 Need a Hint? Click here
+            </button>
+          ) : (
+            <div className="bg-indigo-950/80 border border-indigo-700/80 text-indigo-200 text-xs px-3.5 py-2 rounded-xl animate-fade-in font-medium">
+              💡 <span className="font-bold text-amber-300">Hint:</span> {solutionObj.hint}
+            </div>
+          )}
         </div>
 
         {/* Game Board */}
