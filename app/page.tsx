@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 
-// تمام الفاظ کو 6 حروف کا رکھ دیا ہے تاکہ لک اور گرڈ بہترین رہے
 const WORDS = [
   "NEXTJS",
   "VERCEL",
@@ -22,40 +21,49 @@ export default function Home() {
   const [gameOver, setGameOver] = useState(false);
   const [message, setMessage] = useState("");
 
-  // Score & Timer States (ٹائم 120 سیکنڈز سیٹ کر دیا گیا ہے)
+  // Score & Timer States
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(120);
   const [isTimerActive, setIsTimerActive] = useState(false);
+  const [isRoundOver, setIsRoundOver] = useState(false);
 
-  const resetGame = useCallback(() => {
+  // اگلا راؤنڈ شروع کرنے کا فنکشن (سکور برقرار رہے گا)
+  const startNextRound = useCallback(() => {
     const randomWord = WORDS[Math.floor(Math.random() * WORDS.length)];
     setSolution(randomWord);
     setGuesses(Array(6).fill(""));
     setCurrentGuess("");
     setCurrentRow(0);
-    setGameOver(false);
+    setIsRoundOver(false);
     setMessage("");
-    setTimeLeft(120); // کھیل دوبارہ شروع ہونے پر بھی 120 سیکنڈز ملیں گے
-    setIsTimerActive(true);
   }, []);
+
+  // گیم نئے سرے سے ری سیٹ کرنے کا فنکشن
+  const resetFullGame = useCallback(() => {
+    setScore(0);
+    setTimeLeft(120);
+    setGameOver(false);
+    setIsTimerActive(true);
+    startNextRound();
+  }, [startNextRound]);
 
   // Initialize Game
   useEffect(() => {
-    resetGame();
-  }, [resetGame]);
+    resetFullGame();
+  }, [resetFullGame]);
 
   const handleKeyPress = useCallback((letter: string) => {
-    if (gameOver || !solution || currentGuess.length >= solution.length) return;
+    if (gameOver || isRoundOver || !solution || currentGuess.length >= solution.length) return;
     setCurrentGuess((prev) => prev + letter);
-  }, [gameOver, solution, currentGuess]);
+  }, [gameOver, isRoundOver, solution, currentGuess]);
 
   const handleDelete = useCallback(() => {
-    if (gameOver) return;
+    if (gameOver || isRoundOver) return;
     setCurrentGuess((prev) => prev.slice(0, -1));
-  }, [gameOver]);
+  }, [gameOver, isRoundOver]);
 
   const handleSubmit = useCallback(() => {
-    if (gameOver || !solution) return;
+    if (gameOver || isRoundOver || !solution) return;
     if (currentGuess.length !== solution.length) {
       setMessage(`Word must be ${solution.length} letters!`);
       return;
@@ -65,28 +73,35 @@ export default function Home() {
     newGuesses[currentRow] = currentGuess;
     setGuesses(newGuesses);
 
-    // Winner Logic
+    // Winner Logic (ایک لفظ سولو ہونے پر)
     if (currentGuess === solution) {
-      const points = (6 - currentRow) * 10 + timeLeft;
+      const points = (6 - currentRow) * 10 + 20; // 20 ایڈیٹر بونس
       setScore((prev) => prev + points);
-      setMessage(`🎉 Victory! +${points} Points!`);
-      setGameOver(true);
-      setIsTimerActive(false);
+      setMessage(`🎉 Correct! +${points} Points! Next word coming...`);
+      setIsRoundOver(true);
+
+      // 1.5 سیکنڈ میں خود بخود اگلا لفظ آ جائے گا
+      setTimeout(() => {
+        startNextRound();
+      }, 1500);
+
     } else if (currentRow === 5) {
-      setMessage(`Game Over! The word was: ${solution}`);
-      setGameOver(true);
-      setIsTimerActive(false);
+      setMessage(`Word missed! The word was: ${solution}`);
+      setIsRoundOver(true);
+      setTimeout(() => {
+        startNextRound();
+      }, 2000);
     } else {
       setCurrentRow((prev) => prev + 1);
       setCurrentGuess("");
       setMessage("");
     }
-  }, [gameOver, solution, currentGuess, guesses, currentRow, timeLeft]);
+  }, [gameOver, isRoundOver, solution, currentGuess, guesses, currentRow, startNextRound]);
 
   // Physical Keyboard Support
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (gameOver) return;
+      if (gameOver || isRoundOver) return;
 
       if (e.key === "Enter") {
         handleSubmit();
@@ -99,9 +114,9 @@ export default function Home() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleSubmit, handleDelete, handleKeyPress, gameOver]);
+  }, [handleSubmit, handleDelete, handleKeyPress, gameOver, isRoundOver]);
 
-  // Timer Logic
+  // Timer Logic (صرف ٹائم ختم ہونے پر گیم اوور ہوگی)
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (isTimerActive && timeLeft > 0 && !gameOver) {
@@ -109,12 +124,12 @@ export default function Home() {
         setTimeLeft((prev) => prev - 1);
       }, 1000);
     } else if (timeLeft === 0 && !gameOver) {
-      setMessage(`⏰ Time's up! Word was: ${solution}`);
+      setMessage(`⏰ Time's up! Final Score: ${score}`);
       setGameOver(true);
       setIsTimerActive(false);
     }
     return () => clearInterval(timer);
-  }, [isTimerActive, timeLeft, gameOver, solution]);
+  }, [isTimerActive, timeLeft, gameOver, score]);
 
   const getLetterStyle = (rowIndex: number, colIndex: number) => {
     const guess = guesses[rowIndex];
@@ -143,17 +158,17 @@ export default function Home() {
           Wordle Pro 🧩
         </h1>
         <p className="text-slate-400 text-center text-xs mb-4">
-          Guess the hidden tech word before time runs out!
+          Solve as many words as you can in 2 minutes!
         </p>
 
         {/* Score & Timer Dashboard */}
         <div className="flex justify-between items-center bg-slate-950/70 border border-slate-800/80 rounded-xl px-4 py-2.5 mb-5 text-sm font-bold">
           <div className="flex items-center gap-1.5 text-amber-400">
-            <span>🏆 Score:</span>
+            <span>🏆 Total Score:</span>
             <span className="text-white text-base font-extrabold">{score}</span>
           </div>
           <div className={`flex items-center gap-1.5 ${timeLeft <= 15 ? "text-rose-500 animate-pulse" : "text-emerald-400"}`}>
-            <span>⏱️ Time:</span>
+            <span>⏱️ Time Left:</span>
             <span className="text-white text-base font-extrabold">{timeLeft}s</span>
           </div>
         </div>
@@ -199,7 +214,7 @@ export default function Home() {
 
         {gameOver && (
           <button
-            onClick={resetGame}
+            onClick={resetFullGame}
             className="w-full mb-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl font-bold transition shadow-lg shadow-indigo-900/40 text-sm"
           >
             Play Again 🔄
