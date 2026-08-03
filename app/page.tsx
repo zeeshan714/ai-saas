@@ -11,7 +11,7 @@ export default function Home() {
   const [currentRow, setCurrentRow] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [message, setMessage] = useState("");
-  
+
   // Score & Timer States
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(60);
@@ -21,6 +21,24 @@ export default function Home() {
   useEffect(() => {
     resetGame();
   }, []);
+
+  // Physical Keyboard Support (کمپیوٹر کی بورڈ کے لیے)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (gameOver) return;
+
+      if (e.key === "Enter") {
+        handleSubmit();
+      } else if (e.key === "Backspace") {
+        handleDelete();
+      } else if (/^[a-zA-Z]$/.test(e.key)) {
+        handleKeyPress(e.key.toUpperCase());
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [currentGuess, gameOver, currentRow, solution]);
 
   // Timer Logic
   useEffect(() => {
@@ -70,6 +88,7 @@ export default function Home() {
     newGuesses[currentRow] = currentGuess;
     setGuesses(newGuesses);
 
+    // Winner Logic (جیتنے کی صورت میں اسکور بننا)
     if (currentGuess === solution) {
       const points = (6 - currentRow) * 10 + timeLeft;
       setScore((prev) => prev + points);
@@ -89,7 +108,7 @@ export default function Home() {
 
   const getLetterStyle = (rowIndex: number, colIndex: number) => {
     const guess = guesses[rowIndex];
-    if (!guess || !guess[colIndex]) {
+    if (rowIndex >= currentRow || !guess || !guess[colIndex]) {
       return "bg-slate-900/60 border-slate-700/60 text-white";
     }
 
@@ -141,7 +160,7 @@ export default function Home() {
                     <div
                       key={colIndex}
                       className={`h-11 border-2 rounded-xl flex items-center justify-center text-lg font-bold uppercase transition-all duration-300 ${
-                        isCurrentRow
+                        isCurrentRow && letter
                           ? "border-blue-500 bg-slate-800/80 text-white scale-105 shadow-md shadow-blue-900/30"
                           : getLetterStyle(rowIndex, colIndex)
                       }`}
