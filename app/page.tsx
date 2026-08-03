@@ -1,8 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
-const WORDS = ["REACT", "NEXTJS", "VERCEL", "CODING", "SCRIPT", "DESIGN", "GITHUB"];
+// تمام الفاظ کو 6 حروف کا رکھ دیا ہے تاکہ لک اور گرڈ بہترین رہے
+const WORDS = [
+  "NEXTJS",
+  "VERCEL",
+  "CODING",
+  "SCRIPT",
+  "DESIGN",
+  "GITHUB",
+  "PYTHON",
+  "DOCKER"
+];
 
 export default function Home() {
   const [solution, setSolution] = useState("");
@@ -17,12 +27,63 @@ export default function Home() {
   const [timeLeft, setTimeLeft] = useState(60);
   const [isTimerActive, setIsTimerActive] = useState(false);
 
+  const resetGame = useCallback(() => {
+    const randomWord = WORDS[Math.floor(Math.random() * WORDS.length)];
+    setSolution(randomWord);
+    setGuesses(Array(6).fill(""));
+    setCurrentGuess("");
+    setCurrentRow(0);
+    setGameOver(false);
+    setMessage("");
+    setTimeLeft(60);
+    setIsTimerActive(true);
+  }, []);
+
   // Initialize Game
   useEffect(() => {
     resetGame();
-  }, []);
+  }, [resetGame]);
 
-  // Physical Keyboard Support (کمپیوٹر کی بورڈ کے لیے)
+  const handleKeyPress = useCallback((letter: string) => {
+    if (gameOver || !solution || currentGuess.length >= solution.length) return;
+    setCurrentGuess((prev) => prev + letter);
+  }, [gameOver, solution, currentGuess]);
+
+  const handleDelete = useCallback(() => {
+    if (gameOver) return;
+    setCurrentGuess((prev) => prev.slice(0, -1));
+  }, [gameOver]);
+
+  const handleSubmit = useCallback(() => {
+    if (gameOver || !solution) return;
+    if (currentGuess.length !== solution.length) {
+      setMessage(`Word must be ${solution.length} letters!`);
+      return;
+    }
+
+    const newGuesses = [...guesses];
+    newGuesses[currentRow] = currentGuess;
+    setGuesses(newGuesses);
+
+    // Winner Logic
+    if (currentGuess === solution) {
+      const points = (6 - currentRow) * 10 + timeLeft;
+      setScore((prev) => prev + points);
+      setMessage(`🎉 Victory! +${points} Points!`);
+      setGameOver(true);
+      setIsTimerActive(false);
+    } else if (currentRow === 5) {
+      setMessage(`Game Over! The word was: ${solution}`);
+      setGameOver(true);
+      setIsTimerActive(false);
+    } else {
+      setCurrentRow((prev) => prev + 1);
+      setCurrentGuess("");
+      setMessage("");
+    }
+  }, [gameOver, solution, currentGuess, guesses, currentRow, timeLeft]);
+
+  // Physical Keyboard Support
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (gameOver) return;
@@ -38,7 +99,7 @@ export default function Home() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentGuess, gameOver, currentRow, solution]);
+  }, [handleSubmit, handleDelete, handleKeyPress, gameOver]);
 
   // Timer Logic
   useEffect(() => {
@@ -55,57 +116,6 @@ export default function Home() {
     return () => clearInterval(timer);
   }, [isTimerActive, timeLeft, gameOver, solution]);
 
-  const resetGame = () => {
-    const randomWord = WORDS[Math.floor(Math.random() * WORDS.length)];
-    setSolution(randomWord);
-    setGuesses(Array(6).fill(""));
-    setCurrentGuess("");
-    setCurrentRow(0);
-    setGameOver(false);
-    setMessage("");
-    setTimeLeft(60);
-    setIsTimerActive(true);
-  };
-
-  const handleKeyPress = (letter: string) => {
-    if (gameOver || currentGuess.length >= solution.length) return;
-    setCurrentGuess((prev) => prev + letter);
-  };
-
-  const handleDelete = () => {
-    if (gameOver) return;
-    setCurrentGuess((prev) => prev.slice(0, -1));
-  };
-
-  const handleSubmit = () => {
-    if (gameOver) return;
-    if (currentGuess.length !== solution.length) {
-      setMessage(`Word must be ${solution.length} letters!`);
-      return;
-    }
-
-    const newGuesses = [...guesses];
-    newGuesses[currentRow] = currentGuess;
-    setGuesses(newGuesses);
-
-    // Winner Logic (جیتنے کی صورت میں اسکور بننا)
-    if (currentGuess === solution) {
-      const points = (6 - currentRow) * 10 + timeLeft;
-      setScore((prev) => prev + points);
-      setMessage(`🎉 Victory! +${points} Points!`);
-      setGameOver(true);
-      setIsTimerActive(false);
-    } else if (currentRow === 5) {
-      setMessage(`Game Over! The word was: ${solution}`);
-      setGameOver(true);
-      setIsTimerActive(false);
-    } else {
-      setCurrentRow((prev) => prev + 1);
-      setCurrentGuess("");
-      setMessage("");
-    }
-  };
-
   const getLetterStyle = (rowIndex: number, colIndex: number) => {
     const guess = guesses[rowIndex];
     if (rowIndex >= currentRow || !guess || !guess[colIndex]) {
@@ -121,6 +131,8 @@ export default function Home() {
     }
     return "bg-slate-800 border-slate-700 text-slate-400";
   };
+
+  const wordLength = solution.length || 6;
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 text-white flex flex-col items-center justify-center p-4">
@@ -151,8 +163,12 @@ export default function Home() {
           {guesses.map((guess, rowIndex) => {
             const isCurrentRow = rowIndex === currentRow;
             return (
-              <div key={rowIndex} className="grid grid-cols-6 gap-2">
-                {Array.from({ length: solution.length || 6 }).map((_, colIndex) => {
+              <div 
+                key={rowIndex} 
+                className="grid gap-2"
+                style={{ gridTemplateColumns: `repeat(${wordLength}, minmax(0, 1fr))` }}
+              >
+                {Array.from({ length: wordLength }).map((_, colIndex) => {
                   const letter = isCurrentRow
                     ? currentGuess[colIndex]
                     : guess[colIndex];
