@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 
-// الفاظ اور ان کے ہنٹس کی بڑی لسٹ تاکہ لفظ کا اندازہ پہلے سے نہ لگایا جا سکے
+// الفاظ اور ان کے ہنٹس کی لسٹ
 const WORDS_WITH_HINTS = [
   { word: "NEXTJS", hint: "Popular React framework for web development" },
   { word: "VERCEL", hint: "Platform to deploy Next.js apps easily" },
@@ -17,7 +17,7 @@ const WORDS_WITH_HINTS = [
   { word: "SYSTEM", hint: "Set of detailed methods or procedures" },
   { word: "ACTION", hint: "Event or function executed upon user interaction" },
   { word: "SEARCH", hint: "Looking for specific information in a database" },
-  { word: "OBJECT", hint: "A instance of a class in programming" },
+  { word: "OBJECT", hint: "An instance of a class in programming" },
   { word: "CANVAS", hint: "HTML element used to draw graphics on the fly" },
   { word: "NUMBER", hint: "Mathematical object used to count and measure" }
 ];
@@ -30,6 +30,7 @@ export default function Home() {
   const [gameOver, setGameOver] = useState(false);
   const [message, setMessage] = useState("");
   const [showHint, setShowHint] = useState(false);
+  const [showRules, setShowRules] = useState(false); // رولز کا پاپ اپ کھولنے کے لیے
 
   // Score & Timer States
   const [score, setScore] = useState(0);
@@ -37,7 +38,7 @@ export default function Home() {
   const [isTimerActive, setIsTimerActive] = useState(false);
   const [isRoundOver, setIsRoundOver] = useState(false);
 
-  // غیر متوقع رینڈم لفظ چننے کا فنکشن
+  // اگلا راؤنڈ شروع کرنے کا فنکشن
   const startNextRound = useCallback(() => {
     const randomIndex = Math.floor(Math.random() * WORDS_WITH_HINTS.length);
     const randomItem = WORDS_WITH_HINTS[randomIndex];
@@ -51,7 +52,7 @@ export default function Home() {
     setShowHint(false);
   }, []);
 
-  // گیم نئے سرے سے ری سیٹ کرنے کا فنکشن
+  // گیم ری سیٹ کرنے کا فنکشن
   const resetFullGame = useCallback(() => {
     setScore(0);
     setTimeLeft(120);
@@ -66,17 +67,17 @@ export default function Home() {
   }, [resetFullGame]);
 
   const handleKeyPress = useCallback((letter: string) => {
-    if (gameOver || isRoundOver || !solutionObj.word || currentGuess.length >= solutionObj.word.length) return;
+    if (gameOver || isRoundOver || showRules || !solutionObj.word || currentGuess.length >= solutionObj.word.length) return;
     setCurrentGuess((prev) => prev + letter);
-  }, [gameOver, isRoundOver, solutionObj, currentGuess]);
+  }, [gameOver, isRoundOver, showRules, solutionObj, currentGuess]);
 
   const handleDelete = useCallback(() => {
-    if (gameOver || isRoundOver) return;
+    if (gameOver || isRoundOver || showRules) return;
     setCurrentGuess((prev) => prev.slice(0, -1));
-  }, [gameOver, isRoundOver]);
+  }, [gameOver, isRoundOver, showRules]);
 
   const handleSubmit = useCallback(() => {
-    if (gameOver || isRoundOver || !solutionObj.word) return;
+    if (gameOver || isRoundOver || showRules || !solutionObj.word) return;
     if (currentGuess.length !== solutionObj.word.length) {
       setMessage(`Word must be ${solutionObj.word.length} letters!`);
       return;
@@ -108,12 +109,12 @@ export default function Home() {
       setCurrentGuess("");
       setMessage("");
     }
-  }, [gameOver, isRoundOver, solutionObj, currentGuess, guesses, currentRow, startNextRound]);
+  }, [gameOver, isRoundOver, showRules, solutionObj, currentGuess, guesses, currentRow, startNextRound]);
 
   // Physical Keyboard Support
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (gameOver || isRoundOver) return;
+      if (gameOver || isRoundOver || showRules) return;
 
       if (e.key === "Enter") {
         handleSubmit();
@@ -126,12 +127,12 @@ export default function Home() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleSubmit, handleDelete, handleKeyPress, gameOver, isRoundOver]);
+  }, [handleSubmit, handleDelete, handleKeyPress, gameOver, isRoundOver, showRules]);
 
   // Timer Logic
   useEffect(() => {
     let timer: NodeJS.Timeout;
-    if (isTimerActive && timeLeft > 0 && !gameOver) {
+    if (isTimerActive && timeLeft > 0 && !gameOver && !showRules) {
       timer = setInterval(() => {
         setTimeLeft((prev) => prev - 1);
       }, 1000);
@@ -141,7 +142,7 @@ export default function Home() {
       setIsTimerActive(false);
     }
     return () => clearInterval(timer);
-  }, [isTimerActive, timeLeft, gameOver, score]);
+  }, [isTimerActive, timeLeft, gameOver, score, showRules]);
 
   const getLetterStyle = (rowIndex: number, colIndex: number) => {
     const guess = guesses[rowIndex];
@@ -162,13 +163,25 @@ export default function Home() {
   const wordLength = solutionObj.word.length || 6;
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 text-white flex flex-col items-center justify-center p-4">
-      <div className="max-w-md w-full bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-3xl p-6 shadow-2xl">
+    <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 text-white flex flex-col items-center justify-center p-4 relative">
+      <div className="max-w-md w-full bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-3xl p-6 shadow-2xl relative">
         
-        {/* Header */}
-        <h1 className="text-3xl font-black text-center bg-gradient-to-r from-blue-400 via-indigo-300 to-emerald-400 bg-clip-text text-transparent mb-1">
-          Wordle Pro 🧩
-        </h1>
+        {/* Header & Rules Button */}
+        <div className="flex justify-between items-center mb-1">
+          <div className="w-8"></div>
+          <h1 className="text-3xl font-black text-center bg-gradient-to-r from-blue-400 via-indigo-300 to-emerald-400 bg-clip-text text-transparent">
+            Wordle Pro 🧩
+          </h1>
+          {/* Rules Icon Button */}
+          <button
+            onClick={() => setShowRules(true)}
+            className="w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded-full text-indigo-300 font-bold border border-slate-700 transition"
+            title="How to Play"
+          >
+            ❓
+          </button>
+        </div>
+
         <p className="text-slate-400 text-center text-xs mb-3">
           Solve as many words as you can in 2 minutes!
         </p>
@@ -299,6 +312,64 @@ export default function Home() {
         </div>
 
       </div>
+
+      {/* Rules Modal (پاپ اپ) */}
+      {showRules && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-900 border border-slate-700 max-w-sm w-full rounded-2xl p-5 text-slate-200 shadow-2xl space-y-4">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                📖 How to Play Rules
+              </h2>
+              <button 
+                onClick={() => setShowRules(false)}
+                className="text-slate-400 hover:text-white font-bold text-lg px-2"
+              >
+                ✕
+              </button>
+            </div>
+
+            <ul className="text-xs space-y-2.5 leading-relaxed">
+              <li className="flex items-start gap-2">
+                <span className="text-amber-400 font-bold">1.</span> 
+                Guess the hidden 6-letter tech word in 6 tries.
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-amber-400 font-bold">2.</span> 
+                Color hints after each guess:
+              </li>
+              
+              {/* Examples */}
+              <div className="pl-4 space-y-1.5 text-[11px]">
+                <div className="flex items-center gap-2">
+                  <span className="w-5 h-5 bg-emerald-600 flex items-center justify-center rounded text-white font-bold">G</span>
+                  <span><strong>Green:</strong> Letter is correct & in right spot.</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-5 h-5 bg-amber-600 flex items-center justify-center rounded text-white font-bold">Y</span>
+                  <span><strong>Yellow:</strong> Letter is in word but wrong spot.</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-5 h-5 bg-slate-800 border border-slate-700 flex items-center justify-center rounded text-slate-400 font-bold">X</span>
+                  <span><strong>Grey:</strong> Letter is not in the word.</span>
+                </div>
+              </div>
+
+              <li className="flex items-start gap-2">
+                <span className="text-amber-400 font-bold">3.</span> 
+                You have <strong>120 seconds</strong> to solve as many words as possible to build a High Score!
+              </li>
+            </ul>
+
+            <button
+              onClick={() => setShowRules(false)}
+              className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-xs transition mt-2"
+            >
+              Got it, Let's Play! 🚀
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
