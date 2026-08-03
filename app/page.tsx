@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 
-// الفاظ اور ان کے ہنٹس (Hints)
+// الفاظ اور ان کے ہنٹس کی بڑی لسٹ تاکہ لفظ کا اندازہ پہلے سے نہ لگایا جا سکے
 const WORDS_WITH_HINTS = [
   { word: "NEXTJS", hint: "Popular React framework for web development" },
   { word: "VERCEL", hint: "Platform to deploy Next.js apps easily" },
@@ -11,7 +11,15 @@ const WORDS_WITH_HINTS = [
   { word: "DESIGN", hint: "Creating UI/UX and visual structure" },
   { word: "GITHUB", hint: "Platform for code hosting & version control" },
   { word: "PYTHON", hint: "Popular language for AI and Data Science" },
-  { word: "DOCKER", hint: "Container technology to package applications" }
+  { word: "DOCKER", hint: "Container technology to package applications" },
+  { word: "SERVER", hint: "Central computer that provides data to other computers" },
+  { word: "MOBILE", hint: "Handheld computing device like smartphones" },
+  { word: "SYSTEM", hint: "Set of detailed methods or procedures" },
+  { word: "ACTION", hint: "Event or function executed upon user interaction" },
+  { word: "SEARCH", hint: "Looking for specific information in a database" },
+  { word: "OBJECT", hint: "A instance of a class in programming" },
+  { word: "CANVAS", hint: "HTML element used to draw graphics on the fly" },
+  { word: "NUMBER", hint: "Mathematical object used to count and measure" }
 ];
 
 export default function Home() {
@@ -29,16 +37,18 @@ export default function Home() {
   const [isTimerActive, setIsTimerActive] = useState(false);
   const [isRoundOver, setIsRoundOver] = useState(false);
 
-  // اگلا راؤنڈ شروع کرنے کا فنکشن
+  // غیر متوقع رینڈم لفظ چننے کا فنکشن
   const startNextRound = useCallback(() => {
-    const randomItem = WORDS_WITH_HINTS[Math.floor(Math.random() * WORDS_WITH_HINTS.length)];
+    const randomIndex = Math.floor(Math.random() * WORDS_WITH_HINTS.length);
+    const randomItem = WORDS_WITH_HINTS[randomIndex];
+    
     setSolutionObj(randomItem);
     setGuesses(Array(6).fill(""));
     setCurrentGuess("");
     setCurrentRow(0);
     setIsRoundOver(false);
     setMessage("");
-    setShowHint(false); // نئے راؤنڈ پر ہنٹ خود بخود چھپ جائے گا
+    setShowHint(false);
   }, []);
 
   // گیم نئے سرے سے ری سیٹ کرنے کا فنکشن
@@ -76,7 +86,7 @@ export default function Home() {
     newGuesses[currentRow] = currentGuess;
     setGuesses(newGuesses);
 
-    // Winner Logic (ایک لفظ سولو ہونے پر)
+    // Winner Logic
     if (currentGuess === solutionObj.word) {
       const points = (6 - currentRow) * 10 + 20;
       setScore((prev) => prev + points);
