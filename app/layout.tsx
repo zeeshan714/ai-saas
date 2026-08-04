@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 
+const inter = Inter({ subsets: ["latin"] });
+
 export const metadata: Metadata = {
-  title: "Wordle Pro Game",
-  description: "Play Wordle Pro and test your tech vocabulary skills!",
-  other: {
-    "google-adsense-account": "ca-pub-4451053574258511",
-  },
+  title: "Wordle Pro 🧩 - Fast-Paced Tech Word Game",
+  description: "Guess hidden tech words, score points, and beat the clock in 2 minutes!",
 };
 
 export default function RootLayout({
@@ -17,13 +18,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <script
+        {/* Google AdSense Script */}
+        <Script
           async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4451053574258511"
           crossOrigin="anonymous"
-        ></script>
+          strategy="afterInteractive"
+        />
       </head>
-      <body>{children}</body>
+      <body className={inter.className}>{children}</body>
     </html>
   );
 }
